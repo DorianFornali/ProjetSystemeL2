@@ -24,16 +24,8 @@ def handler_ctrlC(_sig, _frame):
         serversocket.close()
         sys.exit(0)
 
-def handler_signal_filsToP():
-    global c
-    print('signal recu')
-    c += 1
-
-
 
 signal.signal(signal.SIGINT, handler_ctrlC)
-signal.signal(signal.SIGUSR1, handler_signal_filsToP)
-
 
 
 def usage():
