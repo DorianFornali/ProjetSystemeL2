@@ -25,8 +25,6 @@ if (ligne_id != "GET / HTTP/1.1") and (ligne_id[:18] != "GET /ajoute?saisie"): #
         os.write(2, "request not supported\n".encode('utf-8'))
         sys.exit(0)
 
-# Cas ou la requête est de type GET HTTP
-
 saisie = ligne_id[19:].split("&")[0]
 saisie = escaped_latin1_to_utf8(saisie)
 saisie = saisie.replace("+", " ")
