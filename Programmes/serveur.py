@@ -42,12 +42,7 @@ def usage():
 
 
 def limitation(): # Fonction permettant de numérer le nombre de connexions encore en cours
-    for s in liste_socket:
-        if s.fileno() == -1 and s not in liste_socket_fermee:
-                liste_socket_fermee.append(s)
-        else: # Socket ouverte
-            pass
-    return (len(liste_socket) - len(liste_socket_fermee)) >= 4 
+    return (len(liste_fils) - c) >= 4
 
 if __name__ == '__main__':
 
@@ -61,9 +56,13 @@ if __name__ == '__main__':
     traitant = sys.argv[1]
 
     MAXBYTES = 100000
+    c = 0
     liste_fils = []
-    liste_socket = []
-    liste_socket_fermee = []
+
+    try:
+        os.remove("rm ./historique.txt")  # Supprime l'historique du traitant4 au lancement du serveur
+    except:
+        pass
 
     print("PID actuel :", os.getpid())
     print("En attente d'une connexion ...")
@@ -71,11 +70,16 @@ if __name__ == '__main__':
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind((HOST, PORT))
     serversocket.listen()
+    
+    try:
+        os.wait()
+        c = +1
+    except:
+        pass
 
     while True:
 
         (clientsocket, (addr, port)) = serversocket.accept()
-        liste_socket.append(clientsocket)
 
         if (limitation()):
             print(f"Tentative de connexion depuis {addr}\n4 connexions simultanées, suspension du client en attendant la terminaison de l'une d'elles.")
@@ -93,7 +97,8 @@ if __name__ == '__main__':
 
             serversocket.close()
             os.execvp(traitant, [traitant])
-        
+
         else:
             liste_fils.append(pid)
             clientsocket.close()
+
