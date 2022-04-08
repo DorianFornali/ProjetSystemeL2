@@ -42,7 +42,11 @@ def usage():
 
 
 def limitation(): # Fonction permettant de numérer le nombre de connexions encore en cours
-    return (len(liste_fils) - c) >= 4
+    if traitant == "cat":
+        return (len(liste_fils) - c) >= 4
+    else:
+        return False
+
 
 if __name__ == '__main__':
 
@@ -70,12 +74,14 @@ if __name__ == '__main__':
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     serversocket.bind((HOST, PORT))
     serversocket.listen()
-    
-    try:
-        os.wait()
-        c = +1
-    except:
-        pass
+
+    if traitant == "cat":
+        try:
+            os.wait() #
+            c = +1
+        except:
+            pass
+
 
     while True:
 
