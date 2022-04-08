@@ -20,7 +20,10 @@ ligne_id = requete_decoded.split("\r\n")[0]  # Premiere ligne, censée comporter
 
 requete_decoded = requete_decoded.replace("\r\n", "</br>")
 
-historique = os.open("./historique.txt", os.O_RDWR | os.O_CREAT | os.O_APPEND)
+historique_lecture = os.open("./historique.txt", os.O_RDONLY | os.O_CREAT)
+historique_ecriture = os.open("./historique.txt", os.O_WRONLY | os.O_APPEND)
+
+
 
 if (ligne_id != "GET / HTTP/1.1") and (ligne_id[:18] != "GET /ajoute?saisie"): # Ni saisie ni get http
         os.write(2, "request not supported\n".encode('utf-8'))
@@ -32,9 +35,10 @@ saisie = escaped_latin1_to_utf8(saisie)
 saisie = saisie.replace("+", " ")
 
 if len(saisie) != 0:
-    os.write(historique, f"{saisie}</br>".encode('utf-8'))
+    os.write(historique_ecriture, f"{saisie}</br>".encode('utf-8'))
 
-contenu_historique = os.read(historique, MAXBYTES).decode('utf-8')
+
+contenu_historique = os.read(historique_lecture, MAXBYTES).decode('utf-8')
 
 
 reponse = f"""HTTP/1.1 200 
@@ -55,7 +59,7 @@ Content-Length: {str(sys.getsizeof(requete_decoded)+200).encode('utf-8')}
 </html>
 """
 
-os.close(historique)
+os.close(historique_lecture)
+os.close(historique_ecriture)
+
 print(reponse) # Etant donné que le traitant hérite des descripteurs de fichier de son père, un print écrivant normalement sur 1 va écrire sur la socket, donc chez le client
-
-
