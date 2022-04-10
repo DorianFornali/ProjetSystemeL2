@@ -25,9 +25,13 @@ if (ligne_id != "GET / HTTP/1.1") and (ligne_id[:18] != "GET /ajoute?saisie"): #
         os.write(2, "request not supported\n".encode('utf-8'))
         sys.exit(0)
 
-saisie = ligne_id[19:].split("&")[0]
-saisie = escaped_latin1_to_utf8(saisie)
-saisie = saisie.replace("+", " ")
+
+if ligne_id == "GET / HTTP/1.1":
+    saisie = ""
+else:
+    saisie = ligne_id[19:].split("&")[0]
+    saisie = escaped_latin1_to_utf8(saisie)
+    saisie = saisie.replace("+", " ")
 
 
 reponse = f"""HTTP/1.1 200 
@@ -49,5 +53,3 @@ Content-Length: {str(sys.getsizeof(requete_decoded)+200).encode('utf-8')}
 """
 
 print(reponse) # Etant donné que le traitant hérite des descripteurs de fichier de son père, un print écrivant normalement sur 1 va écrire sur la socket, donc chez le client
-
-

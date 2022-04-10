@@ -16,7 +16,10 @@ def handler_ctrlC(_sig, _frame):
             except:
                 pass
         
-        clientsocket.close()
+        try: # Try except car erreur levée pour ce .close() dans le cas ou le serveur est lancé puis fermé sans fils crée
+            clientsocket.close()
+        except:
+            pass
         print('\nFermeture du serveur')
 
         sys.exit(0)
@@ -44,7 +47,7 @@ def usage():
 def limitation(): # Fonction permettant de numérer le nombre de connexions encore en cours
     if traitant == "cat":
         return (len(liste_fils) - c) >= 4
-    else:
+    else:       # On ne met la limitation a 4 connexions que dans le cas ou le traitant est cat
         return False
 
 
@@ -64,7 +67,7 @@ if __name__ == '__main__':
     liste_fils = []
 
     try:
-        os.remove("rm ./historique.txt")  # Supprime l'historique du traitant4 au lancement du serveur
+        os.remove("/tmp/historique.txt")  # Supprime l'historique du traitant4 au lancement du serveur
     except:
         pass
 
