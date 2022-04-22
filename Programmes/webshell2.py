@@ -19,45 +19,47 @@ resultat_commande = ''
 
 requete = os.read(0, MAXBYTES)
 requete_decoded = requete.decode("utf-8")
-ligne_id = requete_decoded.split("\r\n")[0]
+ligne_id = requete_decoded.split("\r\n")[0].split()
 
-
-if ligne_id != "GET / HTTP/1.1" and ligne_id[:13] != "GET /commande":
+if ligne_id[0] != "GET" or ligne_id[1] == "/favicon.ico" or ligne_id[-1] != "HTTP/1.1":
     os.write(2, "request not supported\n".encode('utf-8'))
-    sys.exit(0)
+    sys.exit(1)
 
-if ligne_id == "GET / HTTP/1.1": # Premiere connexion, on crée le shell persistant
+
+if ligne_id[1] == "/":
     id_session = os.getpid()
-
+    saisie = ''
     os.mkfifo(f"/tmp/traitant{id_session}_to_shell")
     os.mkfifo(f"/tmp/shell_to_traitant{id_session}")
-    os.write(2, "debug".encode('utf-8'))
 
-    commande = f"sh /tmp/traitant{id_session}_to_shell 3<> /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4> /tmp/traitant{id_session}_to_shell 5< /tmp/shell_to_traitant{id_session}"
-    #os.system(f"sh -c 'sh /tmp/traitant{id_session}_to_shell 3< /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4> /tmp/traitant{id_session}_to_shell 5< /tmp/shell_to_traitant{id_session}'")
-    if os.fork() == 0:
-        os.execvp("sh", ['sh', '-c', commande])
+    pid = os.fork()
+    if pid == 0:
+        os.execvp('bash', [
+                  'bash', '-c', f"sh /tmp/traitant{id_session}_to_shell 3<> /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4< /tmp/shell_to_traitant{id_session}"])
 else:
-    id_session = ligne_id.split("?")[0][13:]
-    saisie = ligne_id.split("=")[1].split("&")[0]
-    saisie = escaped_utf8_to_utf8(saisie)
-    saisie = saisie.replace("+", " ")
+    id_session = ligne_id[1].split("?")[0][9:]
+    saisie = escaped_utf8_to_utf8(ligne_id[1].split(
+        "=")[1].split("&")[0].replace('+', ' '))
 
-    os.write(2, saisie.encode('utf-8')) #debug
-    os.write(2, "\n".encode('utf-8')) #debug
-    os.write(2, id_session.encode('utf-8')) #debug
-    try:
-        tvs = os.open(f"/tmp/traitant{id_session}_to_shell", os.O_WRONLY)
-        os.write(tvs, saisie.encode('utf-8'))
-        os.close(tvs)
-        
-        svt = os.open(f"/tmp/shell_to_traitant{id_session}", os.O_RDONLY)
-        resultat_commande = os.read(svt, MAXBYTES).decode('utf-8')
-        os.close(svt)
+    with open(f"/tmp/traitant{id_session}_to_shell", "w") as tvs:
+        if saisie == "":
+            tvs.write("echo \n")
+        else:
+            tvs.write(f"{saisie};echo \n")
+    time.sleep(0.5)
 
-        os.write(2, resultat_commande.encode('utf-8')) #debug
-    except:
-        resultat_commande = "null"
+    svt = os.open(f"/tmp/shell_to_traitant{id_session}", os.O_RDONLY)
+    resultat_commande = os.read(svt, 100000).decode(
+        "UTF-8").rstrip().replace("\n", "</br>")
+
+historique_lecture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_RDONLY | os.O_CREAT)
+historique_ecriture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_WRONLY | os.O_APPEND)
+
+if ligne_id[1] != "/":
+    os.write(historique_ecriture, f"{time.strftime('%H:%M:%S', time.localtime())} >>> {saisie}</br>{resultat_commande}</br>".encode('utf-8'))
+    # On ajoute a l'historique une reproduction du prompt avec la commande saisie et son resultat
+
+contenu_historique = os.read(historique_lecture, MAXBYTES).decode('utf-8')
 
 reponse = f"""HTTP/1.1 200 
 Content-Type: text/html; charset=utf-8
@@ -69,10 +71,10 @@ Content-Length: {str(sys.getsizeof(requete_decoded)+200).encode('utf-8')}
 <head></head>
 <body>
     <form action="commande{id_session}" method="get">
-        {time.strftime('%H:%M:%S', time.localtime())}
+        {contenu_historique}
+        {time.strftime('%H:%M:%S', time.localtime())} >>>
         <input type="text" name="saisie" placeholder="Entrez une commande shell" /> 
-        <input type="submit" name="send" value="&#9166;"> </br>
-        {resultat_commande}
+        <input type="submit" name="send" value="&#9166;">     
     </form>
 </body>
 </html>
