@@ -28,27 +28,36 @@ if ligne_id != "GET / HTTP/1.1" and ligne_id[:13] != "GET /commande":
 
 if ligne_id == "GET / HTTP/1.1": # Premiere connexion, on crée le shell persistant
     id_session = os.getpid()
+
     os.mkfifo(f"/tmp/traitant{id_session}_to_shell")
     os.mkfifo(f"/tmp/shell_to_traitant{id_session}")
-    
+    os.write(2, "debug".encode('utf-8'))
 
+    commande = f"sh /tmp/traitant{id_session}_to_shell 3<> /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4> /tmp/traitant{id_session}_to_shell 5< /tmp/shell_to_traitant{id_session}"
+    #os.system(f"sh -c 'sh /tmp/traitant{id_session}_to_shell 3< /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4> /tmp/traitant{id_session}_to_shell 5< /tmp/shell_to_traitant{id_session}'")
+    if os.fork() == 0:
+        os.execvp("sh", ['sh', '-c', commande])
 else:
     id_session = ligne_id.split("?")[0][13:]
     saisie = ligne_id.split("=")[1].split("&")[0]
     saisie = escaped_utf8_to_utf8(saisie)
     saisie = saisie.replace("+", " ")
 
-    if os.fork() == 0:
+    os.write(2, saisie.encode('utf-8')) #debug
+    os.write(2, "\n".encode('utf-8')) #debug
+    os.write(2, id_session.encode('utf-8')) #debug
+    try:
+        tvs = os.open(f"/tmp/traitant{id_session}_to_shell", os.O_WRONLY)
+        os.write(tvs, saisie.encode('utf-8'))
+        os.close(tvs)
+        
+        svt = os.open(f"/tmp/shell_to_traitant{id_session}", os.O_RDONLY)
+        resultat_commande = os.read(svt, MAXBYTES).decode('utf-8')
+        os.close(svt)
 
-        fifo_TSc = os.open(f"/tmp/traitant{id_session}_to_shell", os.O_WRONLY)
-        os.dup2(fifo_TSc, 1)
-        os.dup2(fifo_TSc, 2)
-        os.execvp('sh', ['sh', '-c', saisie])
-    
-    fifo_TSp = os.open(f"/tmp/traitant{id_session}_to_shell", os.O_RDONLY)
-    resultat_commande = os.read(fifo_TSp, MAXBYTES).decode('utf-8')
-    resultat_commande = resultat_commande.replace("\n", "</br>")
-    os.close(fifo_TSp)
+        os.write(2, resultat_commande.encode('utf-8')) #debug
+    except:
+        resultat_commande = "null"
 
 reponse = f"""HTTP/1.1 200 
 Content-Type: text/html; charset=utf-8
