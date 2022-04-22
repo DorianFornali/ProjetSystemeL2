@@ -26,9 +26,14 @@ if ligne_id != "GET / HTTP/1.1" and ligne_id[:13] != "GET /commande":
     os.write(2, "request not supported\n".encode('utf-8'))
     sys.exit(0)
 
-if ligne_id[:13] == "GET /commande":
-    pere, fils = os.pipe()
+if ligne_id == "GET / HTTP/1.1":
+    id_session = os.getpid()
+    saisie = ""
 
+if ligne_id[:13] == "GET /commande":
+    id_session = ligne_id.split("?")[0][13:]
+    pere, fils = os.pipe()
+    
     saisie = ligne_id.split("=")[1].split("&")[0]
     saisie = escaped_utf8_to_utf8(saisie)
     saisie = saisie.replace("+", " ")
@@ -45,6 +50,15 @@ if ligne_id[:13] == "GET /commande":
     resultat_commande = pere.read(MAXBYTES)
     resultat_commande = resultat_commande.replace("\n", "</br>")
 
+historique_lecture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_RDONLY | os.O_CREAT)
+historique_ecriture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_WRONLY | os.O_APPEND)
+
+if len(resultat_commande) != 0:
+    os.write(historique_ecriture, f"{time.strftime('%H:%M:%S', time.localtime())} >>> {saisie}</br>{resultat_commande}".encode('utf-8'))
+    # On ajoute a l'historique une reproduction du prompt avec la commande saisie et son resultat
+
+contenu_historique = os.read(historique_lecture, MAXBYTES).decode('utf-8')
+
 reponse = f"""HTTP/1.1 200 
 Content-Type: text/html; charset=utf-8
 Connection: close
@@ -54,11 +68,12 @@ Content-Length: {str(sys.getsizeof(requete_decoded)+200).encode('utf-8')}
 <html>
 <head></head>
 <body>
-    <form action="commande" method="get">
-        {time.strftime('%H:%M:%S', time.localtime())}
+    <form action="commande{id_session}" method="get">
+        {contenu_historique}
+        {time.strftime('%H:%M:%S', time.localtime())} >>>
         <input type="text" name="saisie" placeholder="Entrez une commande shell" />
-        <input type="submit" name="send" value="&#9166;"> </br>
-        {resultat_commande} 
+        <input type="submit" name="send" value="&#9166;"> 
+         
     </form>
 </body>
 </html>
