@@ -53,7 +53,7 @@ if ligne_id[:13] == "GET /commande":
 historique_lecture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_RDONLY | os.O_CREAT)
 historique_ecriture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_WRONLY | os.O_APPEND)
 
-if len(resultat_commande) != 0:
+if ligne_id != "GET / HTTP/1.1":
     os.write(historique_ecriture, f"{time.strftime('%H:%M:%S', time.localtime())} >>> {saisie}</br>{resultat_commande}".encode('utf-8'))
     # On ajoute a l'historique une reproduction du prompt avec la commande saisie et son resultat
 
