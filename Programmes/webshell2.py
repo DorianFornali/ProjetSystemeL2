@@ -38,8 +38,7 @@ if ligne_id[1] == "/":
                   'bash', '-c', f"sh /tmp/traitant{id_session}_to_shell 3<> /tmp/traitant{id_session}_to_shell &> /tmp/shell_to_traitant{id_session} 4< /tmp/shell_to_traitant{id_session}"])
 else:
     id_session = ligne_id[1].split("?")[0][9:]
-    saisie = escaped_utf8_to_utf8(ligne_id[1].split(
-        "=")[1].split("&")[0].replace('+', ' '))
+    saisie = escaped_utf8_to_utf8(ligne_id[1].split("=")[1].split("&")[0].replace('+', ' '))
 
     with open(f"/tmp/traitant{id_session}_to_shell", "w") as tvs:
         if saisie == "":
@@ -49,8 +48,7 @@ else:
     time.sleep(0.5)
 
     svt = os.open(f"/tmp/shell_to_traitant{id_session}", os.O_RDONLY)
-    resultat_commande = os.read(svt, 100000).decode(
-        "UTF-8").rstrip().replace("\n", "</br>")
+    resultat_commande = os.read(svt, 100000).decode("UTF-8").rstrip().replace("\n", "</br>")
 
 historique_lecture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_RDONLY | os.O_CREAT)
 historique_ecriture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_WRONLY | os.O_APPEND)

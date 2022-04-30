@@ -3,16 +3,16 @@ import os, sys
 
 MAXBYTES = 100000
 
-def escaped_latin1_to_utf8(s):
-    res = '' ; i = 0
+def escaped_utf8_to_utf8(s):
+    res = b'' ; i = 0
     while i < len(s):
         if s[i] == '%':
-            res += chr(int(s[i+1:i+3], base=16))
+            res += int(s[i+1:i+3], base=16).to_bytes(1, byteorder='big')
             i += 3
         else :
-            res += s[i]
+            res += s[i].encode('utf-8')
             i += 1
-    return res
+    return res.decode('utf-8')
 
 
 requete = os.read(0, MAXBYTES)
@@ -32,7 +32,7 @@ else:                             # Si ce n'est pas la premiere connexion (donc 
     id_session = ligne_id.split("?")[0][19:]
 
     saisie = ligne_id.split("=")[1].split("&")[0]
-    saisie = escaped_latin1_to_utf8(saisie)
+    saisie = escaped_utf8_to_utf8(saisie)
     saisie = saisie.replace("+", " ")
 
 historique_lecture = os.open(f"/tmp/historique_session{id_session}.txt", os.O_RDONLY | os.O_CREAT)
@@ -55,7 +55,7 @@ Content-Length: {str(sys.getsizeof(requete_decoded)+200).encode('utf-8')}
 <head></head>
 <body>
     <form action="ajoute_session{id_session}" method="get">
-        {contenu_historique} </br>
+        {contenu_historique}
         <input type="text" name="saisie" placeholder="Tapez quelque chose" />
         <input type="submit" name="send" value="&#9166;">
     </form>

@@ -3,16 +3,16 @@ import os, sys, time
 
 MAXBYTES = 100000
 
-def escaped_latin1_to_utf8(s):
-    res = '' ; i = 0
+def escaped_utf8_to_utf8(s):
+    res = b'' ; i = 0
     while i < len(s):
         if s[i] == '%':
-            res += chr(int(s[i+1:i+3], base=16))
+            res += int(s[i+1:i+3], base=16).to_bytes(1, byteorder='big')
             i += 3
         else :
-            res += s[i]
+            res += s[i].encode('utf-8')
             i += 1
-    return res
+    return res.decode('utf-8')
 
 requete = os.read(0, MAXBYTES)
 
@@ -30,7 +30,7 @@ if ligne_id == "GET / HTTP/1.1":
     saisie = ""
 else:
     saisie = ligne_id[19:].split("&")[0]
-    saisie = escaped_latin1_to_utf8(saisie)
+    saisie = escaped_utf8_to_utf8(saisie)
     saisie = saisie.replace("+", " ")
 
 
